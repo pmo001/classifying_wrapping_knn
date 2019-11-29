@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from scipy.spatial import distance 
-#was used to compare made-from-scratch implementation of euclidean distance for (n>2)-dimensions
 
 #header=None prevents first row from becoming header
 #data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
@@ -57,6 +55,7 @@ def z_normalize_per_feature(data):
             data.at[y,x] = z_score
     
     #print("df after change: ", data)
+    print("> The data has been normalized to improve nearest neighbor classification")
     return
 
 
@@ -111,6 +110,9 @@ def append_feature_to_df(take, give, feature_num):
     df_concat = pd.concat([take, give2], axis=1)
     return df_concat
 
+def subset_certain_features(base, feature_list):
+        return base[feature_list]
+
 #TODO complete this
 #ref: Prof. Eamonn's Project_2_Briefing slides
 def forward_selection(df):
@@ -129,6 +131,10 @@ def forward_selection(df):
             #only continue forloop if not already added
             if j not in desired_features: 
                 print("   -Considering adding feature {}".format(j))
+                list2 = [j] #convert feature to list to add to a list
+                features_to_test = desired_features + list2
+                subset_df = data[features_to_test]
+                print(subset_df)
                 #accuracy = #TODO (here:) leave_one_out_cv()
 
                 #TODO if accuracy > best_so_far_accuracy 
@@ -143,12 +149,12 @@ def forward_selection(df):
 
 
 def main():
-    #z_normalize_per_feature(data)
+    z_normalize_per_feature(data)
 
     #print(euclidean_dist([1,0,0], [0,1,0], 3))
     #print(euclidean_dist([1, 1, 0], [0, 1, 0], 3))
 
-    print(data)
+    ###print(data)
     print(">>>>>>>>>>>>>")
     forward_selection(data)
     ###print(init_one_feature(data, 2))
