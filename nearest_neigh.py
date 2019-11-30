@@ -59,11 +59,10 @@ def z_normalize_per_feature(data):
     return
 
 
-#           d = 3, rep: [x, y, z]  etc...
+# dim/numFeatures = 3; rep: [x, y, z]  etc...
 # calc euclid for ALL pts
-#input: 1.a dataframe w.r.t features in contention
-#       2. the vector of comparison(a row)
-#       3. k times for kNN 
+#input: 1.a subset df(training set) w.r.t selected features
+#       2. the row of comparison (the validation df)
 #process: 1. finds euclid dist row by row
 #       2. inserts each euclid dist into minheap as a tuple: (dist, class) //comparison w.r.t first el
 #       3. pop out min dist. k times 
@@ -71,7 +70,7 @@ def z_normalize_per_feature(data):
 #           a.if popped[1] == 1, count_one += 1; b.
 #       5. if count_one > count_two: return 1
 #output: the class val: 1 or 2
-def kNearestNeigh(small_df, vector_row):
+def kNearestNeigh(training_df, validation_df):
 
     k_val = 0 #FIXME rm later
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
@@ -103,13 +102,28 @@ def min_heap():
 #TODO
 #(a.)process:
 #   1. CV the base df: i.e. 10 folds: 9 folds for training, 1 fold for validation
-#   2. >10 training sets: within each: apply subsetFeatures
-def outer_CV(base_df, subset_features):
+#   2. 10 training sets: within each: apply subsetFeatures(list)
+def leave_one_out_CV(base_df, subset_features_list):
+    #move (2) up here?
     #1.call training_valid_split to training/valid split the base_df
     # a.the return of the call: 10 diff sets of[ training set(9) and valid set(1)]
     #2.to each of these 10: training set(9): apply variable selection which...
     # //this subsets all 10 training sets to only have the selected cols
     # a.then apply kNN to this subset of a subset
+
+    subset_df = base_df[subset_features_list]
+    #each row will become sole el of validation set at some point
+    num_correct = 0
+    for i in range(base_df.shape[0]):
+        validation_df = subset_df.loc[subset_df.index == i] #each i will become its own validation set eventually
+        training_df = subset_df.loc[subset_df.index != i] # df w select features - i
+        #kNN returns the vote: either 1 or 2 for class
+        # if vote is same as valid's class, ^correct
+        #each forloop/t_v_block produces either a 1 or 0 in correctness
+        if kNearestNeigh(training_df, validation_df) == validation_df.iloc[:,0]:
+            num_correct += 1
+    accuracy = num_correct / i
+        
 
     return
 
@@ -130,7 +144,7 @@ def training_valid_split(base_df, subset_df): #fixme? need subsetdf?
         validation_df = base_df.loc[base_df.index == i] #each i will become its own validation set eventually
         training_df = base_df.loc[base_df.index != i] #base df - i
 
-    split_pool = (i, (training_df, validation_df)) #FIXME
+    ###split_pool = (i, (training_df, validation_df)) #FIXME
     return 
 
 #exclude a row from base df based on row's index
@@ -162,7 +176,7 @@ def append_feature_to_df(take, give, feature_num):
     return df_concat
 
 def subset_certain_features(base, feature_list):
-        return base[feature_list]
+    return base[feature_list]
 
 #TODO complete this
 #ref: Prof. Eamonn's Project_2_Briefing slides
@@ -186,11 +200,10 @@ def forward_selection(df):
                 features_to_test = desired_features + list2
                 subset_df = data[features_to_test]
                 print(subset_df)
-                #accuracy = #TODO (here:) leave_one_out_cv()
+                accuracy = leave_one_out_CV()
 
-                #TODO if accuracy > best_so_far_accuracy 
-                #TODO best_so_far_accuracy = accuracy;
-                #feature_to_add_at_this_level = j;
+                if accuracy > best_so_far_accuracy 
+                best_so_far_accuracy = accuracy;
                 feature_to_add_at_this_level = j
 
         desired_features.append(feature_to_add_at_this_level)
@@ -212,8 +225,10 @@ def main():
 ###fixme    forward_selection(data)
     ###print(init_one_feature(data, 2))
     ###print(append_feature(init_one_feature(data, 2), data, 1))
-    print(exclude_row_from_df(data, 2))
+    #print(exclude_row_from_df(data, 2))
+    
 
+    
 
     return
 main()
