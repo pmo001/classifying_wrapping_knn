@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import heapq
 
 #header=None prevents first row from becoming header
 #data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
@@ -71,38 +72,53 @@ def z_normalize_per_feature(data):
 #       5. if count_one > count_two: return 1
 #output: the class val: 1 or 2
 def kNearestNeigh(training_df, validation_df):
-
-    k_val = 0 #FIXME rm later
+    minheap = [] #init min heap
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
     #k = sqrt(num of observations(rows))
-#FIXME    k_val = np.floor(np.sqrt(FIXME numrows)) #floor ensures is_integer 
+    k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
     if k_val % 2 == 0:
         k_val += 1 #makes sure is odd since numClass=2
 
-    #TODO: print(dataframe)
+    #toss each of these euclid dists into minheap 
+    for i in range(training_df.shape[0]): #get euclid dist: each row to the valid_pt
+        if training_df.shape[1] == 2: #1 feature/dim (1 class col + 1 feature)
+                # abs(training[] - valid[])
+            euclid_dist = np.absolute(training_df.iloc[i,1] - validation_df.iloc[:,1])
+            #pushes into minheap and compares euclid_dist, tuple[1]=class num
+            heapq.heappush(minheap, (euclid_dist, training_df.iloc[i,0]))
+        elif training_df.shape[1] > 2: # >1 feature
+            sum = 0
+            for j in range(1, training_df.shape[1]): #for each feature(thus exclude class col)
+                #ref: https://hlab.stanford.edu/brian/euclidean_distance_in.html
+                #sum += (point1[i] - point2[i])**2
+                sum += (training_df.iloc[i,j] - validation_df.iloc[:,j])**2
+            euclid_dist = np.sqrt(sum)
+            heapq.heappush(minheap, (euclid_dist, training_df.iloc[i,0])) #tuple[1]=class num
+    
+    #pop out k_val rows from minheap and vote on the class of validation
+    vote_class1 = 0
+    vote_class2 = 0
+    #overall_vote = 0 #fixme can prob del
 
-    if dimension == 1: #1 feature
-            # x - x
-        return point1[0] - point2[0]
-    elif dimension == 2: #2 features
-        return np.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
-    elif dimension > 2:
-        sum = 0
-        for i in range(len(point1)):
-            #ref: https://hlab.stanford.edu/brian/euclidean_distance_in.html
-            sum += (point1[i] - point2[i])**2
-        return np.sqrt(sum)
-
-    return
-#purpose: ranks the closest points(euclid dist) for nearest neighbor
-def min_heap():
-
-    return
+    print("size of minheap: ", len(minheap))
+    for i in range(int(k_val.item())): #.item() converts numpy back to native python
+        #pops min val while maintaining min heap invariant
+        #pop will return tuple(dist, class_num) 
+        if validation_df.iloc[:, 0] == heapq.heappop(minheap)[1]: #if valid_class = min_class
+            vote_class1 += 1
+        else:
+            vote_class2 += 1
+    
+    if vote_class1 > vote_class2:
+        return 1
+    else:
+        return 2
 
 #TODO
 #(a.)process:
 #   1. CV the base df: i.e. 10 folds: 9 folds for training, 1 fold for validation
 #   2. 10 training sets: within each: apply subsetFeatures(list)
+#return accuracy of model w.r.t selected features
 def leave_one_out_CV(base_df, subset_features_list):
     #move (2) up here?
     #1.call training_valid_split to training/valid split the base_df
@@ -123,9 +139,8 @@ def leave_one_out_CV(base_df, subset_features_list):
         if kNearestNeigh(training_df, validation_df) == validation_df.iloc[:,0]:
             num_correct += 1
     accuracy = num_correct / i
-        
-
-    return
+    
+    return accuracy
 
 #TODO: test this with sklearn
 #leave-one-out-CV:
@@ -198,13 +213,13 @@ def forward_selection(df):
                 print("   -Considering adding feature {}".format(j))
                 list2 = [j] #convert feature to list to add to a list
                 features_to_test = desired_features + list2
-                subset_df = data[features_to_test]
-                print(subset_df)
-                accuracy = leave_one_out_CV()
+                #subset_df = data[features_to_test] #done in LOOCV def
+                #print(subset_df)                   #done in LOOCV def
+                accuracy = leave_one_out_CV(data, features_to_test)
 
-                if accuracy > best_so_far_accuracy 
-                best_so_far_accuracy = accuracy;
-                feature_to_add_at_this_level = j
+                if accuracy > best_so_far_accuracy: 
+                    best_so_far_accuracy = accuracy;
+                    feature_to_add_at_this_level = j
 
         desired_features.append(feature_to_add_at_this_level)
         print("    << On level: {}, feature: {} was added to desired features".format(i, feature_to_add_at_this_level))
@@ -215,18 +230,15 @@ def forward_selection(df):
 
 
 def main():
-###fixme    z_normalize_per_feature(data)
-
-    #print(euclidean_dist([1,0,0], [0,1,0], 3))
-    #print(euclidean_dist([1, 1, 0], [0, 1, 0], 3))
+    #applies normalization col-wise so that each col is a z-score with 0 as the mean
+    #and el vals 1 or -1 representing one std from the mean
+    #improves kNN
+    z_normalize_per_feature(data)
 
     print(data)
     print(">>>>>>>>>>>>>")
-###fixme    forward_selection(data)
-    ###print(init_one_feature(data, 2))
-    ###print(append_feature(init_one_feature(data, 2), data, 1))
-    #print(exclude_row_from_df(data, 2))
-    
+
+    forward_selection(data)
 
     
 
