@@ -73,6 +73,13 @@ def z_normalize_per_feature(data):
 #output: the class val: 1 or 2
 def kNearestNeigh(small_df, vector_row):
 
+    k_val = 0 #FIXME rm later
+    #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
+    #k = sqrt(num of observations(rows))
+#FIXME    k_val = np.floor(np.sqrt(FIXME numrows)) #floor ensures is_integer 
+    if k_val % 2 == 0:
+        k_val += 1 #makes sure is odd since numClass=2
+
     #TODO: print(dataframe)
 
     if dimension == 1: #1 feature
@@ -88,12 +95,56 @@ def kNearestNeigh(small_df, vector_row):
         return np.sqrt(sum)
 
     return
-
-
 #purpose: ranks the closest points(euclid dist) for nearest neighbor
 def min_heap():
 
     return
+
+#TODO
+#(a.)process:
+#   1. CV the base df: i.e. 10 folds: 9 folds for training, 1 fold for validation
+#   2. >10 training sets: within each: apply subsetFeatures
+def outer_CV(base_df, subset_features):
+    #1.call training_valid_split to training/valid split the base_df
+    # a.the return of the call: 10 diff sets of[ training set(9) and valid set(1)]
+    #2.to each of these 10: training set(9): apply variable selection which...
+    # //this subsets all 10 training sets to only have the selected cols
+    # a.then apply kNN to this subset of a subset
+
+    return
+
+#TODO: test this with sklearn
+#leave-one-out-CV:
+#process: i observation becomes validation set
+#       the rest become training set (this def(t_v_split) stops at this point)
+#2. apply kNN:
+#       if validation set is correctly classified by the kNN training set: +1? #FIXME
+#       elif incorrectly classified, 0 / move on
+#       a. take all the +1 / n to get percent of correctness?
+# do #2 again for the rest of the loop where the next observation is left out for validation set
+# ?: add all of the percent of correct from 2a / n ? to get final percent of correctness?
+def training_valid_split(base_df, subset_df): #fixme? need subsetdf?
+
+    #each row will become sole el of validation set at some point
+    for i in range(base_df.shape[0]):
+        validation_df = base_df.loc[base_df.index == i] #each i will become its own validation set eventually
+        training_df = base_df.loc[base_df.index != i] #base df - i
+
+    split_pool = (i, (training_df, validation_df)) #FIXME
+    return 
+
+#exclude a row from base df based on row's index
+#return: a df with the row excluded
+#doesn't modify baseDF
+def exclude_row_from_df(base_df, idx_row_to_exclude):
+    new_df = base_df.loc[base_df.index != idx_row_to_exclude]
+    #print("new df with the row excluded: ", new_df)
+
+    #a df with only row2:
+    ###row_df = base_df.loc[base_df.index == 2]
+    #print("basedf but only with row 2: ", row_df)
+
+    return new_df
 
 # selects features and forms a df with those features
 # returns a df 
@@ -145,19 +196,24 @@ def forward_selection(df):
         desired_features.append(feature_to_add_at_this_level)
         print("    << On level: {}, feature: {} was added to desired features".format(i, feature_to_add_at_this_level))
         print("       >>>>current desired features<<<<<: ", desired_features)  
+    return
+
 
 
 
 def main():
-    z_normalize_per_feature(data)
+###fixme    z_normalize_per_feature(data)
 
     #print(euclidean_dist([1,0,0], [0,1,0], 3))
     #print(euclidean_dist([1, 1, 0], [0, 1, 0], 3))
 
-    ###print(data)
+    print(data)
     print(">>>>>>>>>>>>>")
-    forward_selection(data)
+###fixme    forward_selection(data)
     ###print(init_one_feature(data, 2))
     ###print(append_feature(init_one_feature(data, 2), data, 1))
+    print(exclude_row_from_df(data, 2))
+
+
     return
 main()
