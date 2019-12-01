@@ -6,15 +6,15 @@ import random #to generate rand idxs to use for deleting 5% of the data
 import math #for floor
 
 #header=None prevents first row from becoming header
-data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+#data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #TODO: "split" this data and apply entirety to each split
-#data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
+data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
 ###data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 
 #ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
 def gen_rand_idx(start, end, base_df):
     #num_idxs will be converted to an INT of 5% of the base_df
-    print("num rows of base_df before deletion: ", base_df.shape[0])
+     #print("num rows of base_df before deletion: ", base_df.shape[0])
     #floor to get a float of an int
     #int to convert the float to an int
     num_idxs = int(math.floor(.05 * base_df.shape[0]))
@@ -33,14 +33,26 @@ print("size of base before alterations: ", data.shape)
 data1 = data.copy()
 #drop deletes (this case:rows) (directly modifies; hence why deepcopy)
 data1 = data1.drop(gen_rand_idx(0, data.shape[0]-1, data))
+#use the drop parameter to avoid the old index being added as a column:
+#inplace=True modifies the original
+data1.reset_index(drop=True, inplace=True)
+
 data2 = data.copy()
 data2 = data2.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data2.reset_index(drop=True, inplace=True)
+
 data3 = data.copy()
 data3 = data3.drop(gen_rand_idx(0, data.shape[0]-1, data))
+#use the drop parameter to avoid the old index being added as a column:
+data3.reset_index(drop=True, inplace=True)
+
 data4 = data.copy()
 data4 = data4.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data4.reset_index(drop=True, inplace=True)
+
 data5 = data.copy()
 data5 = data5.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data5.reset_index(drop=True, inplace=True)
 
 #for each feature, normalize with z-score normalization
 #returns number of standard deviation w.r.t mean
@@ -85,14 +97,12 @@ def z_normalize_per_feature(data):
     #(each el - mean) / std
     for x in range(1, data.shape[1]): #for each col from 1:
         for y in range(data.shape[0]):
-            z_score = (data.iloc[y,x] - dict_mean_std.get(x)[0]) / dict_mean_std.get(x)[1]
-            #.at permanently alters df
-            data.at[y,x] = z_score
-    
+            z_score = (data.iat[y,x] - dict_mean_std.get(x)[0]) / dict_mean_std.get(x)[1]
+            #.iat permanently alters df
+            data.iat[y,x] = z_score
     #print("df after change: ", data)
     print("> The data has been normalized to improve nearest neighbor classification")
     return
-
 
 # dim/numFeatures = 3; rep: [x, y, z]  etc...
 # calc euclid for ALL pts
@@ -112,22 +122,24 @@ def kNearestNeigh(training_df, validation_df):
     #print("  >>>within kNN, valid_df: ")
     #print(validation_df)
 
+    training_df.reset_index(drop=True, inplace=True)
+    validation_df.reset_index(drop=True, inplace=True)
     minheap = [] #init min heap
+
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
     #k = sqrt(num of observations(rows))
     k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
     if k_val % 2 == 0:
         k_val += 1 #makes sure is odd since numClass=2
     ###print("  >>>k val: ", k_val) #too many print outs for big data
+
     #toss each of these euclid dists into minheap 
     for i in range(training_df.shape[0]): #get euclid dist: each row to the valid_pt
         if training_df.shape[1] == 2: #1 feature/dim (1 class col + 1 feature)
                 # abs(training[] - valid[])
             euclid_dist = np.absolute(training_df.iat[i,1] - validation_df.iat[0,1])
             #pushes into minheap and compares euclid_dist, tuple[1]=class num
- #fixme can del           #print("before insertion into minheap; class num: ", training_df.iat[i,0])
             heapq.heappush(minheap, (euclid_dist, training_df.iat[i,0]))
- #fixme can del           #print("after insertion into minheap; minheap: ", minheap)
         elif training_df.shape[1] > 2: # >1 feature
             sum = 0
             for j in range(1, training_df.shape[1]): #for each feature(thus exclude class col)
@@ -160,6 +172,7 @@ def kNearestNeigh(training_df, validation_df):
 #   2. 10 training sets: within each: apply subsetFeatures(list)
 #return accuracy of model w.r.t selected features
 def leave_one_out_CV(base_df, subset_features_list):
+    base_df.reset_index(drop=True, inplace=True)
     #move (2) up here?
     #1.call training_valid_split to training/valid split the base_df
     # a.the return of the call: 10 diff sets of[ training set(9) and valid set(1)]
@@ -177,7 +190,10 @@ def leave_one_out_CV(base_df, subset_features_list):
     num_correct = 0
     for i in range(base_df.shape[0]):
         validation_df = subset_df.loc[subset_df.index == i] #each i will become its own validation set eventually
+        validation_df.reset_index(drop=True, inplace=True)
         training_df = subset_df.loc[subset_df.index != i] # df w select features - i
+        training_df.reset_index(drop=True, inplace=True)
+
         #kNN returns the vote: either 1 or 2 for class
         # if vote is same as valid's class, ^correct
         #each forloop/t_v_block produces either a 1 or 0 in correctness
@@ -217,7 +233,6 @@ def exclude_row_from_df(base_df, idx_row_to_exclude):
     #a df with only row2:
     ###row_df = base_df.loc[base_df.index == 2]
     #print("basedf but only with row 2: ", row_df)
-
     return new_df
 
 # selects features and forms a df with those features
@@ -238,14 +253,14 @@ def append_feature_to_df(take, give, feature_num):
 def subset_certain_features(base, feature_list):
     return base[feature_list]
 
-#TODO complete this
 #ref: Prof. Eamonn's Project_2_Briefing slides
 def forward_selection(df):
+    df.reset_index(drop=True, inplace=True)
     desired_features = [] #init empty list
     maxheap = []
 
     #FIXME TODO for big data: stop at (1,7) //6 levels
-    for i in range(1, df.shape[1]):
+    for i in range(1, 7): #not big data: (1, df.shape[1])
         #clear this variable at start of every lvl
         feature_to_add_at_this_level = None
         best_so_far_accuracy = 0
@@ -260,8 +275,7 @@ def forward_selection(df):
                 print("   -Considering adding feature {}...".format(j))
                 list2 = [j] #convert feature to list to add to a list
                 features_to_test = desired_features + list2
-                #subset_df = data[features_to_test] #done in LOOCV def
-                #print(subset_df)                   #done in LOOCV def
+
                 #the cv error==1-accuracy?
                 accuracy = leave_one_out_CV(data, features_to_test)
                 print("feature {} has an accuracy of: {}".format(j, accuracy))
@@ -283,26 +297,18 @@ def forward_selection(df):
     pop_largest = heapq.nlargest(1, maxheap)
     best_accuracy = pop_largest[0][0]
     best_set = pop_largest[0][1]
-    #print("pop_largest: ", pop_largest)
     print("Overall, the best set is {}, with an accuracy of: {}".format(best_set, best_accuracy))
     return
-
-
-
 
 def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-    #print(data)
+    #print("size of data to normalize: ", data2.shape)
+    z_normalize_per_feature(data2)
     print(">>>>>>>>>>>>>")
 
-    z_normalize_per_feature(data1)
-
-    #print(data)
-    print(">>>>>>>>>>>>>")
-
-    forward_selection(data1)
+    forward_selection(data2)
 
     return
 main()
