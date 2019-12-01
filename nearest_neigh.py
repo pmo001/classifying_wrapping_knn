@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
 import heapq
+import copy #to allow deepcopy
 
 #header=None prevents first row from becoming header
-#data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+###data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #data2 = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
 data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 #print(data)
@@ -72,39 +73,45 @@ def z_normalize_per_feature(data):
 #       5. if count_one > count_two: return 1
 #output: the class val: 1 or 2
 def kNearestNeigh(training_df, validation_df):
+    #fixme can del below
+    #print("  >>>within kNN, training_df: ")
+    #print(training_df)
+    #print("  >>>within kNN, valid_df: ")
+    #print(validation_df)
+
     minheap = [] #init min heap
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
     #k = sqrt(num of observations(rows))
     k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
     if k_val % 2 == 0:
         k_val += 1 #makes sure is odd since numClass=2
-
+    print("  >>>k val: ", k_val)
     #toss each of these euclid dists into minheap 
     for i in range(training_df.shape[0]): #get euclid dist: each row to the valid_pt
         if training_df.shape[1] == 2: #1 feature/dim (1 class col + 1 feature)
                 # abs(training[] - valid[])
-            euclid_dist = np.absolute(training_df.iloc[i,1] - validation_df.iloc[:,1])
+            euclid_dist = np.absolute(training_df.iat[i,1] - validation_df.iat[0,1])
             #pushes into minheap and compares euclid_dist, tuple[1]=class num
-            heapq.heappush(minheap, (euclid_dist, training_df.iloc[i,0]))
+ #fixme can del           #print("before insertion into minheap; class num: ", training_df.iat[i,0])
+            heapq.heappush(minheap, (euclid_dist, training_df.iat[i,0]))
+ #fixme can del           #print("after insertion into minheap; minheap: ", minheap)
         elif training_df.shape[1] > 2: # >1 feature
             sum = 0
             for j in range(1, training_df.shape[1]): #for each feature(thus exclude class col)
                 #ref: https://hlab.stanford.edu/brian/euclidean_distance_in.html
                 #sum += (point1[i] - point2[i])**2
-                sum += (training_df.iloc[i,j] - validation_df.iloc[:,j])**2
+                sum += (training_df.iat[i,j] - validation_df.iat[0,j])**2
             euclid_dist = np.sqrt(sum)
-            heapq.heappush(minheap, (euclid_dist, training_df.iloc[i,0])) #tuple[1]=class num
+            heapq.heappush(minheap, (euclid_dist, training_df.iat[i,0])) #tuple[1]=class num
     
     #pop out k_val rows from minheap and vote on the class of validation
     vote_class1 = 0
     vote_class2 = 0
-    #overall_vote = 0 #fixme can prob del
-
-    print("size of minheap: ", len(minheap))
+    #print("size of minheap: ", len(minheap))
     for i in range(int(k_val.item())): #.item() converts numpy back to native python
         #pops min val while maintaining min heap invariant
         #pop will return tuple(dist, class_num) 
-        if validation_df.iloc[:, 0] == heapq.heappop(minheap)[1]: #if valid_class = min_class
+        if validation_df.iat[0,0] == heapq.heappop(minheap)[1]: #if valid_class = min_class
             vote_class1 += 1
         else:
             vote_class2 += 1
@@ -126,8 +133,13 @@ def leave_one_out_CV(base_df, subset_features_list):
     #2.to each of these 10: training set(9): apply variable selection which...
     # //this subsets all 10 training sets to only have the selected cols
     # a.then apply kNN to this subset of a subset
+    if 0 not in subset_features_list:
+        subset_features_list.append(0)
+        #modifies orig
+        subset_features_list.sort() #sorts so that class col is first
+    print(" >within LOOCV; subset_features_list: ", subset_features_list)
 
-    subset_df = base_df[subset_features_list]
+    subset_df = base_df[subset_features_list] #features + class col
     #each row will become sole el of validation set at some point
     num_correct = 0
     for i in range(base_df.shape[0]):
@@ -136,7 +148,7 @@ def leave_one_out_CV(base_df, subset_features_list):
         #kNN returns the vote: either 1 or 2 for class
         # if vote is same as valid's class, ^correct
         #each forloop/t_v_block produces either a 1 or 0 in correctness
-        if kNearestNeigh(training_df, validation_df) == validation_df.iloc[:,0]:
+        if kNearestNeigh(training_df, validation_df) == validation_df.iat[0,0]:
             num_correct += 1
     accuracy = num_correct / i
     
@@ -197,6 +209,7 @@ def subset_certain_features(base, feature_list):
 #ref: Prof. Eamonn's Project_2_Briefing slides
 def forward_selection(df):
     desired_features = [] #init empty list
+    maxheap = []
 
     for i in range(1, df.shape[1]):
         #clear this variable at start of every lvl
@@ -210,20 +223,30 @@ def forward_selection(df):
         for j in range(1, df.shape[1]):
             #only continue forloop if not already added
             if j not in desired_features: 
-                print("   -Considering adding feature {}".format(j))
+                print("   -Considering adding feature {}...".format(j))
                 list2 = [j] #convert feature to list to add to a list
                 features_to_test = desired_features + list2
                 #subset_df = data[features_to_test] #done in LOOCV def
                 #print(subset_df)                   #done in LOOCV def
                 accuracy = leave_one_out_CV(data, features_to_test)
-
+                print("feature {} has an accuracy of: {}".format(j, accuracy))
                 if accuracy > best_so_far_accuracy: 
                     best_so_far_accuracy = accuracy;
                     feature_to_add_at_this_level = j
 
         desired_features.append(feature_to_add_at_this_level)
-        print("    << On level: {}, feature: {} was added to desired features".format(i, feature_to_add_at_this_level))
+        print("    << On level{}, feature>{}< was added to desired features with accuracy {}".format(i, feature_to_add_at_this_level, best_so_far_accuracy))
         print("       >>>>current desired features<<<<<: ", desired_features)  
+        #deepcopy b/c minheap's desired_features kept updating
+        #prob was just a pointer
+        tmp_deep_copy = copy.deepcopy(desired_features)
+        heapq.heappush(maxheap, (best_so_far_accuracy, tmp_deep_copy))
+        #print("maxheap while changing: ", maxheap)
+    pop_largest = heapq.nlargest(1, maxheap)
+    best_accuracy = pop_largest[0][0]
+    best_set = pop_largest[0][1]
+    #print("pop_largest: ", pop_largest)
+    print("Overall, the best set is {}, with an accuracy of: {}".format(best_set, best_accuracy))
     return
 
 
@@ -233,9 +256,12 @@ def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
+    #print(data)
+    print(">>>>>>>>>>>>>")
+
     z_normalize_per_feature(data)
 
-    print(data)
+    #print(data)
     print(">>>>>>>>>>>>>")
 
     forward_selection(data)
