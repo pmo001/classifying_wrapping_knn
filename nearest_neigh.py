@@ -2,12 +2,45 @@ import pandas as pd
 import numpy as np
 import heapq
 import copy #to allow deepcopy
+import random #to generate rand idxs to use for deleting 5% of the data
+import math #for floor
 
 #header=None prevents first row from becoming header
-###data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
-#data2 = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
-data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
-#print(data)
+data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+#TODO: "split" this data and apply entirety to each split
+#data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
+###data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
+
+#ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
+def gen_rand_idx(start, end, base_df):
+    #num_idxs will be converted to an INT of 5% of the base_df
+    print("num rows of base_df before deletion: ", base_df.shape[0])
+    #floor to get a float of an int
+    #int to convert the float to an int
+    num_idxs = int(math.floor(.05 * base_df.shape[0]))
+    
+    list_rand_idxs = []
+    for i in range(num_idxs):
+        list_rand_idxs.append(random.randint(start, end))
+    
+    return list_rand_idxs
+
+#1.copy the dataframe 5 times
+#2.for each df, delete 5% random rows
+#3.then run entirety on each subset df
+print("size of base before alterations: ", data.shape)
+#deepcopy the basedf
+data1 = data.copy()
+#drop deletes (this case:rows) (directly modifies; hence why deepcopy)
+data1 = data1.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data2 = data.copy()
+data2 = data2.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data3 = data.copy()
+data3 = data3.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data4 = data.copy()
+data4 = data4.drop(gen_rand_idx(0, data.shape[0]-1, data))
+data5 = data.copy()
+data5 = data5.drop(gen_rand_idx(0, data.shape[0]-1, data))
 
 #for each feature, normalize with z-score normalization
 #returns number of standard deviation w.r.t mean
@@ -85,7 +118,7 @@ def kNearestNeigh(training_df, validation_df):
     k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
     if k_val % 2 == 0:
         k_val += 1 #makes sure is odd since numClass=2
-    print("  >>>k val: ", k_val)
+    ###print("  >>>k val: ", k_val) #too many print outs for big data
     #toss each of these euclid dists into minheap 
     for i in range(training_df.shape[0]): #get euclid dist: each row to the valid_pt
         if training_df.shape[1] == 2: #1 feature/dim (1 class col + 1 feature)
@@ -211,6 +244,7 @@ def forward_selection(df):
     desired_features = [] #init empty list
     maxheap = []
 
+    #FIXME TODO for big data: stop at (1,7) //6 levels
     for i in range(1, df.shape[1]):
         #clear this variable at start of every lvl
         feature_to_add_at_this_level = None
@@ -228,6 +262,7 @@ def forward_selection(df):
                 features_to_test = desired_features + list2
                 #subset_df = data[features_to_test] #done in LOOCV def
                 #print(subset_df)                   #done in LOOCV def
+                #the cv error==1-accuracy?
                 accuracy = leave_one_out_CV(data, features_to_test)
                 print("feature {} has an accuracy of: {}".format(j, accuracy))
                 if accuracy > best_so_far_accuracy: 
@@ -242,6 +277,9 @@ def forward_selection(df):
         tmp_deep_copy = copy.deepcopy(desired_features)
         heapq.heappush(maxheap, (best_so_far_accuracy, tmp_deep_copy))
         #print("maxheap while changing: ", maxheap)
+    print("******the best sets for each level sorted by accuracy: ")
+    print(maxheap)
+    print("<<<<<<<<<<<<<<<<<**********")
     pop_largest = heapq.nlargest(1, maxheap)
     best_accuracy = pop_largest[0][0]
     best_set = pop_largest[0][1]
@@ -259,14 +297,12 @@ def main():
     #print(data)
     print(">>>>>>>>>>>>>")
 
-    z_normalize_per_feature(data)
+    z_normalize_per_feature(data1)
 
     #print(data)
     print(">>>>>>>>>>>>>")
 
-    forward_selection(data)
-
-    
+    forward_selection(data1)
 
     return
 main()
