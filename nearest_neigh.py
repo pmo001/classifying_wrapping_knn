@@ -1,6 +1,6 @@
-import pandas as pd
+import pandas as pd #for dataframe manip
 import numpy as np
-import heapq
+import heapq #for minheap
 import copy #to allow deepcopy
 import random #to generate rand idxs to use for deleting 5% of the data
 import math #for floor
@@ -9,7 +9,7 @@ import math #for floor
 #data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #TODO: "split" this data and apply entirety to each split
 data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
-###data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
+#data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 
 #ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
 def gen_rand_idx(start, end, base_df):
@@ -304,11 +304,12 @@ def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-    #print("size of data to normalize: ", data2.shape)
-    z_normalize_per_feature(data2)
+    print("size of data to normalize: ", data5.shape)
+    z_normalize_per_feature(data5)
     print(">>>>>>>>>>>>>")
 
-    forward_selection(data2)
+    forward_selection(data5)
+
 
     return
 main()
