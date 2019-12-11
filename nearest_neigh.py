@@ -6,9 +6,9 @@ import random #to generate rand idxs to use for deleting 5% of the data
 import math #for floor
 
 #header=None prevents first row from becoming header
-#data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #TODO: "split" this data and apply entirety to each split
-data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
+#data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
 #data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 
 #ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
@@ -300,16 +300,74 @@ def forward_selection(df):
     print("Overall, the best set is {}, with an accuracy of: {}".format(best_set, best_accuracy))
     return
 
+def backward_selection(df):
+    df.reset_index(drop=True, inplace=True)
+
+    #init list with all features from 1: 
+    kept_features = [i for i in range(1, df.shape[1])]
+    print("check kept_features has all features: ", kept_features)
+
+    deleted_features = []
+    maxheap = []
+
+    for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
+        feature_to_del_at_this_level = None
+        #least_so_far_accuracy = 100 #fixme maybe?
+        best_so_far_accuracy = 0
+
+        print(">> On level: {} of the search tree".format(i))
+        for j in range(1, df.shape[1]):
+            if j not in deleted_features:
+                print("    -Considering deleting feature {}...".format(j))
+                tmp_kept_feats = kept_features.copy() #deep copy so it doesn't delete perm from orig
+                tmp_kept_feats.remove(j)
+               # print("kept_features: ", kept_features)
+                #print("deleting one from kept: ", tmp_kept_feats)
+                accuracy = leave_one_out_CV(data, tmp_kept_feats)
+   #             accuracy = random.randint(0,10)
+                print("after removal of feature {}, the remaining set has an accuracy of: {}".format(j, accuracy))
+                #the set with the least accuracy will be deleted
+                #if curr < least, the least=curr
+       #         if accuracy < least_so_far_accuracy:
+        #            least_so_far_accuracy = accuracy
+         #           feature_to_del_at_this_level = j
+                
+                if accuracy > best_so_far_accuracy:
+                    best_so_far_accuracy = accuracy
+                    feature_to_del_at_this_level = j
+
+        deleted_features.append(feature_to_del_at_this_level)
+        print("hereeeee: ", kept_features)
+        print(feature_to_del_at_this_level)
+        kept_features.remove(feature_to_del_at_this_level) #orig - feature
+        print("    << On level{}, feature [{}] was deleted b/c removing it gave a greater accuracy of {}".format(i, feature_to_del_at_this_level, best_so_far_accuracy))
+        print("       >>>>current kept features<<<<<: ", kept_features)
+
+        #deepcopy b/c minheap's desired_features kept updating
+        #prob was just a pointer
+        tmp_deep_copy = copy.deepcopy(kept_features)
+        heapq.heappush(maxheap, (best_so_far_accuracy, tmp_deep_copy))
+        #print("maxheap while changing: ", maxheap)
+    print("******the best sets for each level sorted by accuracy: ")
+    print(maxheap)
+    print("<<<<<<<<<<<<<<<<<**********")
+    pop_largest = heapq.nlargest(1, maxheap)
+    best_accuracy = pop_largest[0][0]
+    best_set = pop_largest[0][1]
+    print("Overall, the best set is {}, with an accuracy of: {}".format(best_set, best_accuracy))
+
+    return
+
 def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-    print("size of data to normalize: ", data5.shape)
-    z_normalize_per_feature(data5)
+    print("size of data to normalize: ", data1.shape)
+    z_normalize_per_feature(data1) #normalize for all feature selection methods
     print(">>>>>>>>>>>>>")
 
-    forward_selection(data5)
-
+    #forward_selection(data1)
+    backward_selection(data1)
 
     return
 main()
