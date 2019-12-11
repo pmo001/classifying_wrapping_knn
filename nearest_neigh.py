@@ -6,9 +6,9 @@ import random #to generate rand idxs to use for deleting 5% of the data
 import math #for floor
 
 #header=None prevents first row from becoming header
-data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+#data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #TODO: "split" this data and apply entirety to each split
-#data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
+data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
 #data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 
 #ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
@@ -183,7 +183,7 @@ def leave_one_out_CV(base_df, subset_features_list):
         subset_features_list.append(0)
         #modifies orig
         subset_features_list.sort() #sorts so that class col is first
-    print(" >within LOOCV; subset_features_list: ", subset_features_list)
+    print(" >within LOOCV; after adding 0; >subset_features_list: ", subset_features_list)
 
     subset_df = base_df[subset_features_list] #features + class col
     #each row will become sole el of validation set at some point
@@ -305,12 +305,12 @@ def backward_selection(df):
 
     #init list with all features from 1: 
     kept_features = [i for i in range(1, df.shape[1])]
-    print("check kept_features has all features: ", kept_features)
 
     deleted_features = []
     maxheap = []
 
-    for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
+ #   for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
+    for i in range(1, 10):
         feature_to_del_at_this_level = None
         #least_so_far_accuracy = 100 #fixme maybe?
         best_so_far_accuracy = 0
@@ -362,12 +362,44 @@ def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-    print("size of data to normalize: ", data1.shape)
-    z_normalize_per_feature(data1) #normalize for all feature selection methods
+    print("size of data to normalize: ", data.shape)
+
+    subset_feats1 = []
+    for i in range(0,21):
+        subset_feats1.append(i)
+    subset_df1 = data[subset_feats1] #features + class col
+    
+    subset_feats2 = []
+    subset_feats2.append(0)
+    for i in range(20, 41):
+        subset_feats2.append(i)
+    subset_df2 = data[subset_feats2] #features + class col
+
+    subset_feats3 = []
+    subset_feats3.append(0)
+    for i in range(40, 61):
+        subset_feats3.append(i)
+    subset_df3 = data[subset_feats3] #features + class col
+
+    subset_feats4 = []
+    subset_feats4.append(0)
+    for i in range(60, 81):
+        subset_feats4.append(i)
+    subset_df4 = data[subset_feats4] #features + class col
+
+    subset_feats5 = []
+    subset_feats5.append(0)
+    for i in range(80, 101):
+        subset_feats5.append(i)
+    subset_df5 = data[subset_feats5] #features + class col
+    
+    
+   # z_normalize_per_feature(data) #normalize for all feature selection methods
+    z_normalize_per_feature(subset_df2) #for large_data_bs
     print(">>>>>>>>>>>>>")
 
     #forward_selection(data1)
-    backward_selection(data1)
+    backward_selection(subset_df2)
 
     return
 main()
