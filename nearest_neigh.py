@@ -6,9 +6,9 @@ import random #to generate rand idxs to use for deleting 5% of the data
 import math #for floor
 
 #header=None prevents first row from becoming header
-#data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
+data = pd.read_csv('small_test_data.txt', delim_whitespace=True, header=None)
 #TODO: "split" this data and apply entirety to each split
-data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
+#data = pd.read_csv('large_test_data.txt', delim_whitespace=True, header=None)
 #data = pd.read_csv('vsmall_data.txt', delim_whitespace=True, header=None)
 
 #ref: https://www.geeksforgeeks.org/python-generate-random-numbers-within-a-given-range-and-store-in-a-list/
@@ -93,7 +93,7 @@ def z_normalize_per_feature(data):
 
     #print("df before alteration: ", data)
     #compute z-score for each element
-    #ref fixme analyticsvidhya 8 ways to deal continuous
+    #ref https://www.analyticsvidhya.com/blog/2015/11/8-ways-deal-continuous-variables-predictive-modeling/
     #(each el - mean) / std
     for x in range(1, data.shape[1]): #for each col from 1:
         for y in range(data.shape[0]):
@@ -249,6 +249,78 @@ def append_feature_to_df(take, give, feature_num):
 def subset_certain_features(base, feature_list):
     return base[feature_list]
 
+def backward_selection_speed_variant(df):
+    df.reset_index(drop=True, inplace=True)
+
+    #init list with all features from 1: 
+  ##fixme  kept_features = [i for i in range(1, df.shape[1])]
+  ##fixmeuncmt  kept_features = [1, 2, 3, 6, 7, 8, 12, 13, 14, 16, 17, 21, 25, 26, 27, 30, 32, 33, 34, 35, 39, 40, 41, 45, 47, 48, 50, 55, 57, 59, 60, 62, 63, 65, 67, 68, 70, 73, 74, 75, 76, 77, 78, 85, 90, 91, 92, 95, 97, 99]
+    kept_features = [i for i in range(1, df.shape[1])]
+    deleted_features = []
+    maxheap = []
+    maxheap_inner = []
+    
+
+ #fixmeuncmt   for i in range(1, 7):
+    for i in range(1,5):
+        feature_to_del_at_this_level = None
+        best_so_far_accuracy = 0
+
+        #permanently clears list after each level
+        del maxheap_inner[:]
+
+        print(">> On level: {} of the search tree".format(i))
+        for j in range(1, df.shape[1]):
+            if j in kept_features:
+                print("    -Considering deleting feature {}...".format(j))
+                tmp_kept_feats = kept_features.copy() #deep copy so it doesn't delete perm from orig
+                tmp_kept_feats.remove(j)
+                accuracy = leave_one_out_CV(data, tmp_kept_feats)
+                print("after removal of feature {}, the remaining set has an accuracy of: {}".format(j, accuracy))
+
+                if accuracy > best_so_far_accuracy:
+                    best_so_far_accuracy = accuracy
+
+                #insert (accuracy, j) into max heap
+                heapq.heappush(maxheap_inner, (accuracy, j))
+
+        #do below at end of every level    
+        #take out half of the features that produced the max accuracy when taken out
+        del_half = heapq.nlargest(math.floor(len(kept_features) / 2), maxheap_inner)
+        #retrieving the feature ids that will be deleted
+        del_half_list = []
+        for d in range(len(del_half)):
+            del_half_list.append(del_half[d][1])
+        del_half_list.sort()
+                
+
+        #print("the half features that will be deleted: ", del_half_list)
+        deleted_features += del_half_list
+        deleted_features.sort()
+               
+        #rm del from kept
+        for item in del_half_list:
+            if item in kept_features:
+                kept_features.remove(item)
+        
+        print("    << On level{}, features {} were deleted b/c removing them gave greater accuracy of {}".format(i, del_half_list, best_so_far_accuracy))
+        print("       >>>>current kept features<<<<<: ", kept_features)
+
+        #deepcopy b/c minheap's desired_features kept updating
+        #prob was just a pointer
+        tmp_deep_copy = copy.deepcopy(kept_features)
+        heapq.heappush(maxheap, (best_so_far_accuracy, tmp_deep_copy))
+        #print("maxheap while changing: ", maxheap)
+    print("******the best sets for each level sorted by accuracy: ")
+    print(maxheap)
+    print("<<<<<<<<<<<<<<<<<**********")
+    pop_largest = heapq.nlargest(1, maxheap)
+    best_accuracy = pop_largest[0][0]
+    best_set = pop_largest[0][1]
+    print("Overall, the best set is {}, with an accuracy of: {}".format(best_set, best_accuracy))
+
+    return
+
 #ref: Prof. Eamonn's Project_2_Briefing slides
 def forward_selection(df):
     df.reset_index(drop=True, inplace=True)
@@ -300,12 +372,14 @@ def backward_selection(df):
     df.reset_index(drop=True, inplace=True)
 
     #init list with all features from 1: 
-    kept_features = [i for i in range(1, df.shape[1])]
+#fixmeuncmt    kept_features = [i for i in range(1, df.shape[1])]
+    kept_features = [1, 3, 9, 17, 30, 33, 44, 48, 56, 61, 63, 68, 73, 75]
 
     deleted_features = []
     maxheap = []
-
-    for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
+    
+    #fixme (1, df.shape[1] - 1)
+    for i in range(1, len(kept_features)): #-1 so it doesn't del last feat
     #for i in range(1, 10):
         feature_to_del_at_this_level = None
         #least_so_far_accuracy = 100 #fixme maybe?
@@ -313,7 +387,8 @@ def backward_selection(df):
 
         print(">> On level: {} of the search tree".format(i))
         for j in range(1, df.shape[1]):
-            if j not in deleted_features:
+            if j in kept_features:
+#fixmeuncmt2            if j not in deleted_features:
                 print("    -Considering deleting feature {}...".format(j))
                 tmp_kept_feats = kept_features.copy() #deep copy so it doesn't delete perm from orig
                 tmp_kept_feats.remove(j)
@@ -357,46 +432,12 @@ def backward_selection(df):
 
     return
 
+
 def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
 ##    print("size of data to normalize: ", data.shape)
-
-    subset_feats1 = []
-    for i in range(0,21):
-        subset_feats1.append(i)
-    print(subset_feats1)
-    subset_df1 = data[subset_feats1] #features + class col
-    
-    subset_feats2 = []
-    subset_feats2.append(0)
-    for i in range(21, 41):
-        subset_feats2.append(i)
-    print(subset_feats2)
-    subset_df2 = data[subset_feats2] #features + class col
-
-    subset_feats3 = []
-    subset_feats3.append(0)
-    for i in range(41, 61):
-        subset_feats3.append(i)
-    print(subset_feats3)
-    subset_df3 = data[subset_feats3] #features + class col
-
-    subset_feats4 = []
-    subset_feats4.append(0)
-    for i in range(61, 81):
-        subset_feats4.append(i)
-    print(subset_feats4)
-    subset_df4 = data[subset_feats4] #features + class col
-
-    subset_feats5 = []
-    subset_feats5.append(0)
-    for i in range(81, 101):
-        subset_feats5.append(i)
-    print(subset_feats5)
-    subset_df5 = data[subset_feats5] #features + class col
-    
     
     z_normalize_per_feature(data) #normalize for all feature selection methods
     #print("size of subset data to normalize: ", subset_df1.shape)
@@ -405,7 +446,8 @@ def main():
 
     #forward_selection(data1)
 ##    backward_selection(subset_df1)
-    backward_selection(data)
+   # backward_selection(data)
+    backward_selection_speed_variant(data)
 
     return
 main()
