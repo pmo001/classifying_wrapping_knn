@@ -70,7 +70,6 @@ def z_normalize_per_feature(data):
         #appends mean of each col into dict
         mean = sum / data.shape[0]
         dict_mean_std.update({x : mean})
-        #print(np.format_float_scientific(sum)) #convert to sci not
 
             #col by col
             #data.iloc[:,x]
@@ -120,13 +119,12 @@ def kNearestNeigh(training_df, validation_df):
     validation_df.reset_index(drop=True, inplace=True)
     minheap = [] #init min heap
 
-    k_val = 3 #hardcoding k=3
+   # k_val = 3 #hardcoding k=3
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
-    #k = sqrt(num of observations(rows))
-#rmCmt    k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
-#rmCmt    if k_val % 2 == 0:
-#rmCmt        k_val += 1 #makes sure is odd since numClass=2
-    ###print("  >>>k val: ", k_val) #too many print outs for big data
+    #      k = sqrt(num of observations(rows))
+    k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
+    if k_val % 2 == 0:
+        k_val += 1 #makes sure is odd since numClass=2
 
     #toss each of these euclid dists into minheap 
     for i in range(training_df.shape[0]): #get euclid dist: each row to the valid_pt
@@ -147,9 +145,8 @@ def kNearestNeigh(training_df, validation_df):
     #pop out k_val rows from minheap and vote on the class of validation
     vote_class1 = 0
     vote_class2 = 0
-    #print("size of minheap: ", len(minheap))
-#rmCmt    for i in range(int(k_val.item())): #.item() converts numpy back to native python
-    for i in range(3): #for k=3 
+    for i in range(int(k_val.item())): #.item() converts numpy back to native python
+    #for i in range(3): #for k=3 
         #pops min val while maintaining min heap invariant
         #pop will return tuple(dist, class_num) 
         if validation_df.iat[0,0] == heapq.heappop(minheap)[1]: #if valid_class = min_class
@@ -179,7 +176,7 @@ def leave_one_out_CV(base_df, subset_features_list):
         subset_features_list.append(0)
         #modifies orig
         subset_features_list.sort() #sorts so that class col is first
-    print(" >within LOOCV; after adding 0; >subset_features_list: ", subset_features_list)
+ #fixmuncmt   print(" >within LOOCV; after adding 0; >subset_features_list: ", subset_features_list)
 
     subset_df = base_df[subset_features_list] #features + class col
     #each row will become sole el of validation set at some point
@@ -198,26 +195,6 @@ def leave_one_out_CV(base_df, subset_features_list):
     accuracy = num_correct / i
     
     return accuracy
-
-#TODO: test this with sklearn
-#leave-one-out-CV:
-#process: i observation becomes validation set
-#       the rest become training set (this def(t_v_split) stops at this point)
-#2. apply kNN:
-#       if validation set is correctly classified by the kNN training set: +1? #FIXME
-#       elif incorrectly classified, 0 / move on
-#       a. take all the +1 / n to get percent of correctness?
-# do #2 again for the rest of the loop where the next observation is left out for validation set
-# ?: add all of the percent of correct from 2a / n ? to get final percent of correctness?
-def training_valid_split(base_df, subset_df): #fixme? need subsetdf?
-
-    #each row will become sole el of validation set at some point
-    for i in range(base_df.shape[0]):
-        validation_df = base_df.loc[base_df.index == i] #each i will become its own validation set eventually
-        training_df = base_df.loc[base_df.index != i] #base df - i
-
-    ###split_pool = (i, (training_df, validation_df)) #FIXME
-    return 
 
 #exclude a row from base df based on row's index
 #return: a df with the row excluded
@@ -253,19 +230,13 @@ def backward_selection_speed_variant(df):
     df.reset_index(drop=True, inplace=True)
 
     #init list with all features from 1: 
-  ##fixme  kept_features = [i for i in range(1, df.shape[1])]
-  ##fixmeuncmt  kept_features = [1, 2, 3, 6, 7, 8, 12, 13, 14, 16, 17, 21, 25, 26, 27, 30, 32, 33, 34, 35, 39, 40, 41, 45, 47, 48, 50, 55, 57, 59, 60, 62, 63, 65, 67, 68, 70, 73, 74, 75, 76, 77, 78, 85, 90, 91, 92, 95, 97, 99]
     kept_features = [i for i in range(1, df.shape[1])]
     deleted_features = []
     maxheap = []
     maxheap_inner = []
     
-
- #fixmeuncmt   for i in range(1, 7):
-    for i in range(1,5):
-        feature_to_del_at_this_level = None
+    for i in range(1,7): #fixme
         best_so_far_accuracy = 0
-
         #permanently clears list after each level
         del maxheap_inner[:]
 
@@ -291,10 +262,8 @@ def backward_selection_speed_variant(df):
         del_half_list = []
         for d in range(len(del_half)):
             del_half_list.append(del_half[d][1])
-        del_half_list.sort()
-                
+        del_half_list.sort()               
 
-        #print("the half features that will be deleted: ", del_half_list)
         deleted_features += del_half_list
         deleted_features.sort()
                
@@ -327,15 +296,13 @@ def forward_selection(df):
     desired_features = [] #init empty list
     maxheap = []
 
-    #FIXME TODO for big data: stop at (1,7) //6 levels
-    for i in range(1, 7): #not big data: (1, df.shape[1])
+    # for big data: stop at (1,7) //6 levels
+    #for i in range(1, 7): #not big data: (1, df.shape[1])
+    for i in range(1, df.shape[1]):
         #clear this variable at start of every lvl
         feature_to_add_at_this_level = None
         best_so_far_accuracy = 0
-        
-        #deletes this list at every start of lvl
-        #del feature_to_add_at_this_lvl[:]
-
+       
         print(">> On level: {} of the search tree".format(i))
         for j in range(1, df.shape[1]):
             #only continue forloop if not already added
@@ -372,40 +339,25 @@ def backward_selection(df):
     df.reset_index(drop=True, inplace=True)
 
     #init list with all features from 1: 
-#fixmeuncmt    kept_features = [i for i in range(1, df.shape[1])]
-    kept_features = [1, 3, 9, 17, 30, 33, 44, 48, 56, 61, 63, 68, 73, 75]
+    kept_features = [i for i in range(1, df.shape[1])]
 
     deleted_features = []
     maxheap = []
     
-    #fixme (1, df.shape[1] - 1)
-    for i in range(1, len(kept_features)): #-1 so it doesn't del last feat
-    #for i in range(1, 10):
+    for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
         feature_to_del_at_this_level = None
-        #least_so_far_accuracy = 100 #fixme maybe?
         best_so_far_accuracy = 0
 
         print(">> On level: {} of the search tree".format(i))
         for j in range(1, df.shape[1]):
             if j in kept_features:
-#fixmeuncmt2            if j not in deleted_features:
                 print("    -Considering deleting feature {}...".format(j))
                 tmp_kept_feats = kept_features.copy() #deep copy so it doesn't delete perm from orig
                 tmp_kept_feats.remove(j)
-               # print("kept_features: ", kept_features)
-                #print("deleting one from kept: ", tmp_kept_feats)
                 accuracy = leave_one_out_CV(data, tmp_kept_feats)
    #             accuracy = random.randint(0,10)
                 print("after removal of feature {}, the remaining set has an accuracy of: {}".format(j, accuracy))
-                #the set with the least accuracy will be deleted
-                #if curr < least, the least=curr
-       #         if accuracy < least_so_far_accuracy:
-        #            least_so_far_accuracy = accuracy
-         #           feature_to_del_at_this_level = j
 
-       #TODO         #improved backward_select
-                #insert (accuracy, j) into max heap
-                #take out the (half) 50-features that produced the max accur when taken out
                 if accuracy > best_so_far_accuracy:
                     best_so_far_accuracy = accuracy
                     feature_to_del_at_this_level = j
@@ -440,14 +392,11 @@ def main():
 ##    print("size of data to normalize: ", data.shape)
     
     z_normalize_per_feature(data) #normalize for all feature selection methods
-    #print("size of subset data to normalize: ", subset_df1.shape)
- ##   z_normalize_per_feature(subset_df1) #for large_data_bs
-    print(">>>>>>>>>>>>>")
 
-    #forward_selection(data1)
+    forward_selection(data)
 ##    backward_selection(subset_df1)
    # backward_selection(data)
-    backward_selection_speed_variant(data)
+   # backward_selection_speed_variant(data)
 
     return
 main()
