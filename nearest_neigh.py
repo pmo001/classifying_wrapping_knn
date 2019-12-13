@@ -389,14 +389,27 @@ def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-##    print("size of data to normalize: ", data.shape)
-    
-    z_normalize_per_feature(data) #normalize for all feature selection methods
+    print("Welcome to Paul Mo's Feature Selection Algorithm.")
+    input_file = input("Type in the name of the file to test: ")
 
-    forward_selection(data)
-##    backward_selection(subset_df1)
-   # backward_selection(data)
-   # backward_selection_speed_variant(data)
+    data = pd.read_csv(input_file, delim_whitespace=True, header=None)
+
+    print("Type the number of the algorithm you want to run.")
+    print("   1) Forward Selection")
+    print("   2) Backward Elimination")
+    print("   3) Original Backward Elimination Speed Variant")
+    alg = input(" >")
+
+    print("This dataset has {} features (not including the class attribute), with {} instances".format(data.shape[1], data.shape[0]))
+    print("Evaluation function: Leave-One-Out Cross Validation")
+    print("K-Nearest Neighbor will be used.")
+    z_normalize_per_feature(data) #normalize for all feature selection methods
+    if alg == 1:
+        forward_selection(data)
+    elif alg == 2:
+        backward_selection(data)
+    else:
+        backward_selection_speed_variant(data)
 
     return
 main()
