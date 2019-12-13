@@ -116,21 +116,16 @@ def z_normalize_per_feature(data):
 #       5. if count_one > count_two: return 1
 #output: the class val: 1 or 2
 def kNearestNeigh(training_df, validation_df):
-    #fixme can del below
-    #print("  >>>within kNN, training_df: ")
-    #print(training_df)
-    #print("  >>>within kNN, valid_df: ")
-    #print(validation_df)
-
     training_df.reset_index(drop=True, inplace=True)
     validation_df.reset_index(drop=True, inplace=True)
     minheap = [] #init min heap
 
+    k_val = 3 #hardcoding k=3
     #ref: https://saravananthirumuruganathan.wordpress.com/2010/05/17/a-detailed-introduction-to-k-nearest-neighbor-knn-algorithm/
     #k = sqrt(num of observations(rows))
-    k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
-    if k_val % 2 == 0:
-        k_val += 1 #makes sure is odd since numClass=2
+#rmCmt    k_val = np.floor(np.sqrt(training_df.shape[0])) #floor ensures is_integer 
+#rmCmt    if k_val % 2 == 0:
+#rmCmt        k_val += 1 #makes sure is odd since numClass=2
     ###print("  >>>k val: ", k_val) #too many print outs for big data
 
     #toss each of these euclid dists into minheap 
@@ -153,7 +148,8 @@ def kNearestNeigh(training_df, validation_df):
     vote_class1 = 0
     vote_class2 = 0
     #print("size of minheap: ", len(minheap))
-    for i in range(int(k_val.item())): #.item() converts numpy back to native python
+#rmCmt    for i in range(int(k_val.item())): #.item() converts numpy back to native python
+    for i in range(3): #for k=3 
         #pops min val while maintaining min heap invariant
         #pop will return tuple(dist, class_num) 
         if validation_df.iat[0,0] == heapq.heappop(minheap)[1]: #if valid_class = min_class
@@ -309,8 +305,8 @@ def backward_selection(df):
     deleted_features = []
     maxheap = []
 
- #   for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
-    for i in range(1, 10):
+    for i in range(1, df.shape[1] - 1): #-1 so it doesn't del last feat
+    #for i in range(1, 10):
         feature_to_del_at_this_level = None
         #least_so_far_accuracy = 100 #fixme maybe?
         best_so_far_accuracy = 0
@@ -331,7 +327,10 @@ def backward_selection(df):
        #         if accuracy < least_so_far_accuracy:
         #            least_so_far_accuracy = accuracy
          #           feature_to_del_at_this_level = j
-                
+
+       #TODO         #improved backward_select
+                #insert (accuracy, j) into max heap
+                #take out the (half) 50-features that produced the max accur when taken out
                 if accuracy > best_so_far_accuracy:
                     best_so_far_accuracy = accuracy
                     feature_to_del_at_this_level = j
@@ -362,44 +361,51 @@ def main():
     #applies normalization col-wise so that each col is a z-score with 0 as the mean
     #and el vals 1 or -1 representing one std from the mean
     #improves kNN
-    print("size of data to normalize: ", data.shape)
+##    print("size of data to normalize: ", data.shape)
 
     subset_feats1 = []
     for i in range(0,21):
         subset_feats1.append(i)
+    print(subset_feats1)
     subset_df1 = data[subset_feats1] #features + class col
     
     subset_feats2 = []
     subset_feats2.append(0)
-    for i in range(20, 41):
+    for i in range(21, 41):
         subset_feats2.append(i)
+    print(subset_feats2)
     subset_df2 = data[subset_feats2] #features + class col
 
     subset_feats3 = []
     subset_feats3.append(0)
-    for i in range(40, 61):
+    for i in range(41, 61):
         subset_feats3.append(i)
+    print(subset_feats3)
     subset_df3 = data[subset_feats3] #features + class col
 
     subset_feats4 = []
     subset_feats4.append(0)
-    for i in range(60, 81):
+    for i in range(61, 81):
         subset_feats4.append(i)
+    print(subset_feats4)
     subset_df4 = data[subset_feats4] #features + class col
 
     subset_feats5 = []
     subset_feats5.append(0)
-    for i in range(80, 101):
+    for i in range(81, 101):
         subset_feats5.append(i)
+    print(subset_feats5)
     subset_df5 = data[subset_feats5] #features + class col
     
     
-   # z_normalize_per_feature(data) #normalize for all feature selection methods
-    z_normalize_per_feature(subset_df2) #for large_data_bs
+    z_normalize_per_feature(data) #normalize for all feature selection methods
+    #print("size of subset data to normalize: ", subset_df1.shape)
+ ##   z_normalize_per_feature(subset_df1) #for large_data_bs
     print(">>>>>>>>>>>>>")
 
     #forward_selection(data1)
-    backward_selection(subset_df2)
+##    backward_selection(subset_df1)
+    backward_selection(data)
 
     return
 main()
